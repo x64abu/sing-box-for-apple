@@ -15,6 +15,14 @@ This fetches the `extended` branch of `x64abu/sing-box-extended`, builds its
 revision can be overridden with `SING_BOX_EXTENDED_REPO` and
 `SING_BOX_EXTENDED_REF`.
 
+## Build a sideload IPA with GitHub Actions
+
+Run **Build iOS sideload IPA** from the Actions tab. No Apple certificates or
+provisioning profiles are required. The workflow builds the iOS arm64 core
+from `x64abu/sing-box-extended`, packages the app without signing it, and
+uploads `sing-box-unsigned.ipa`. Sign that IPA separately before installing it
+on an iPhone.
+
 ## Documentation
 
 [SFI](https://sing-box.sagernet.org/installation/clients/sfi/) | [SFM](https://sing-box.sagernet.org/installation/clients/sfm/)
