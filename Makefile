@@ -5,7 +5,13 @@ SHELL := /bin/bash
 APPLICATION_SIGN_IDENTITY := 34EED4C8F8E609CD5D253D88202A071521D1BE74
 INSTALLER_SIGN_IDENTITY := 21E03A44ACC2B48753BABB3DAE9B5F9A9CFF0480
 XCODEBUILD_FLAGS ?= -skipPackagePluginValidation
+SING_BOX_EXTENDED_REPO ?= https://github.com/x64abu/sing-box-extended.git
+SING_BOX_EXTENDED_REF ?= extended
+SING_BOX_EXTENDED_DIR ?= build/sing-box-extended
 export DISABLE_SWIFTLINT := 1
+
+.PHONY: build_all build_ios_deb build_ios build_ios_ipa build_standalone_ipa \
+	build_macos build_macos_standalone build_tvos prepare_libbox
 
 build_all: build_ios build_macos build_tvos
 
@@ -14,6 +20,31 @@ build_ios_deb:
 
 build_ios:
 	xcodebuild build $(XCODEBUILD_FLAGS) -scheme SFI -configuration Debug -destination 'generic/platform=iOS' | xcbeautify | grep -A 10 -e "Build Succeeded" -e "BUILD FAILED" -e "❌"
+
+prepare_libbox:
+	command -v git >/dev/null || { echo "error: git not found" >&2; exit 1; }
+	command -v go >/dev/null || { echo "error: go not found" >&2; exit 1; }
+	if [[ ! -d "$(SING_BOX_EXTENDED_DIR)/.git" ]]; then \
+		mkdir -p "$$(dirname "$(SING_BOX_EXTENDED_DIR)")"; \
+		git clone --depth 1 --branch "$(SING_BOX_EXTENDED_REF)" "$(SING_BOX_EXTENDED_REPO)" "$(SING_BOX_EXTENDED_DIR)"; \
+	else \
+		git -C "$(SING_BOX_EXTENDED_DIR)" fetch --depth 1 origin "$(SING_BOX_EXTENDED_REF)"; \
+		git -C "$(SING_BOX_EXTENDED_DIR)" checkout --detach FETCH_HEAD; \
+	fi
+	$(MAKE) -C "$(SING_BOX_EXTENDED_DIR)" lib_install
+	cd "$(SING_BOX_EXTENDED_DIR)" && go run ./cmd/internal/build_libbox -target apple -platform ios/arm64
+	rm -rf Libbox.xcframework
+	cp -R "$(SING_BOX_EXTENDED_DIR)/Libbox.xcframework" Libbox.xcframework
+
+build_ios_ipa: prepare_libbox
+	command -v xcodebuild >/dev/null || { echo "error: xcodebuild not found; run this target on macOS with Xcode" >&2; exit 1; }
+	rm -rf build/SFI.xcarchive build/SFI
+	xcodebuild archive $(XCODEBUILD_FLAGS) -scheme SFI -configuration Release -destination 'generic/platform=iOS' -archivePath build/SFI.xcarchive
+	xcodebuild -exportArchive -archivePath build/SFI.xcarchive -exportOptionsPlist SFI/Export.plist -exportPath build/SFI
+	test -f build/SFI/sing-box.ipa
+	@echo "IPA: $$(pwd)/build/SFI/sing-box.ipa"
+
+build_standalone_ipa: build_ios_ipa
 
 build_macos:
 	xcodebuild build $(XCODEBUILD_FLAGS) -scheme SFM -configuration Debug -destination 'generic/platform=macOS' | xcbeautify | grep -A 10 -e "Build Succeeded" -e "BUILD FAILED" -e "❌"
