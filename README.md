@@ -2,6 +2,19 @@
 
 Experimental iOS/macOS/tvOS client for sing-box, the universal proxy platform.
 
+## Build a standalone iOS IPA with sing-box-extended
+
+On macOS with Xcode, Go, and a valid iOS signing setup:
+
+```sh
+make build_standalone_ipa
+```
+
+This fetches the `extended` branch of `x64abu/sing-box-extended`, builds its
+`Libbox.xcframework`, and exports `build/SFI/sing-box.ipa`. The repository and
+revision can be overridden with `SING_BOX_EXTENDED_REPO` and
+`SING_BOX_EXTENDED_REF`.
+
 ## Documentation
 
 [SFI](https://sing-box.sagernet.org/installation/clients/sfi/) | [SFM](https://sing-box.sagernet.org/installation/clients/sfm/)
