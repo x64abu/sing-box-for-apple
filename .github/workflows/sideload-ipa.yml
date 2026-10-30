@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       BASE_PACKAGE_IDENTIFIER: io.nekohasekai.sfamt
       EXTENDED_REPOSITORY: https://github.com/x64abu/sing-box-extended.git
