@@ -1,0 +1,77 @@
+name: Build iOS sideload IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      extended_ref:
+        description: sing-box-extended branch, tag, or commit
+        required: true
+        default: extended
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-14
+    env:
+      BASE_PACKAGE_IDENTIFIER: io.nekohasekai.sfamt
+      EXTENDED_REPOSITORY: https://github.com/x64abu/sing-box-extended.git
+    steps:
+      - name: Check out client
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - name: Build Libbox from sing-box-extended
+        env:
+          EXTENDED_REF: ${{ inputs.extended_ref }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "$EXTENDED_REF" "$EXTENDED_REPOSITORY" build/sing-box-extended
+          make -C build/sing-box-extended lib_install
+          (
+            cd build/sing-box-extended
+            go run ./cmd/internal/build_libbox -target apple -platform ios/arm64
+          )
+          cp -R build/sing-box-extended/Libbox.xcframework Libbox.xcframework
+
+      - name: Build unsigned app and package IPA
+        run: |
+          set -euo pipefail
+          xcodebuild build \
+            -skipPackagePluginValidation \
+            -scheme SFI \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/Unsigned \
+            BASE_PACKAGE_IDENTIFIER="$BASE_PACKAGE_IDENTIFIER" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+          APP_PATH="build/Unsigned/Build/Products/Release-iphoneos/sing-box.app"
+          test -d "$APP_PATH"
+          rm -rf build/IPA build/sing-box-unsigned.ipa
+          mkdir -p build/IPA/Payload
+          cp -R "$APP_PATH" build/IPA/Payload/
+          (
+            cd build/IPA
+            zip -qry ../sing-box-unsigned.ipa Payload
+          )
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: sing-box-unsigned-ipa
+          path: build/sing-box-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
