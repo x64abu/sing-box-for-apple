@@ -227,6 +227,18 @@ public class ExtensionPlatformInterface: NSObject, LibboxPlatformInterfaceProtoc
 
     public func autoDetectControl(_: Int32) throws {}
 
+    public func usePlatformAutoDetectInterfaceControl() -> Bool {
+        false
+    }
+
+    public func autoDetectInterfaceControl(_: Int32) throws {}
+
+    public func bindInterfaceControl(_: Int32, interfaceName _: String?) throws {}
+
+    public func useProcFS() -> Bool {
+        false
+    }
+
     public func findConnectionOwner(_ ipProtocol: Int32, sourceAddress: String?, sourcePort: Int32, destinationAddress: String?, destinationPort: Int32) throws -> LibboxConnectionOwner {
         #if os(macOS)
             if Variant.useSystemExtension {
@@ -800,16 +812,6 @@ public class ExtensionPlatformInterface: NSObject, LibboxPlatformInterfaceProtoc
                 NSLocalizedDescriptionKey: "bridge is not supported on this platform",
             ])
         #endif
-    }
-
-    public func usePlatformAutoRedirect() -> Bool {
-        false
-    }
-
-    public func createAutoRedirect(_: Data?, handler _: (any LibboxAutoRedirectHandlerProtocol)?) throws -> any LibboxAutoRedirectSessionProtocol {
-        throw NSError(domain: "ExtensionPlatformInterface", code: -1, userInfo: [
-            NSLocalizedDescriptionKey: "auto redirect is not supported on Apple platforms",
-        ])
     }
 
     #if os(macOS) || JAILBREAK
